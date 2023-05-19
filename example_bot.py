@@ -22,7 +22,7 @@ class MyClient(discord.Client):
         print(f'Message from {message.author}: {message.content}')
         
         if ((message.content[0] == '!')):
-            await message.channel.send(f"thanks for your command")
+            await message.channel.send(f"thanks for your command!")
 
         
 
