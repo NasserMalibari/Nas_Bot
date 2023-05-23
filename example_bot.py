@@ -4,10 +4,33 @@ from discord.ext import commands
 import random
 from dotenv import load_dotenv
 import os
+import requests
 
+masters = []
+
+def get_masters_ladder():
+    headers = {
+    "X-Riot-Token": KEY
+    }
+
+    endpoint = "https://americas.api.riotgames.com/lor/ranked/v1/leaderboards"
+    response = requests.get(endpoint, headers=headers)
+    
+
+    if response.status_code == 200:
+        data = response.json()
+        # Process the data as needed
+        masters = data["players"]
+    else:
+        print("Request failed with status code:", response.status_code)
+
+    print(len(masters))
+    print(masters[0:10])
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+KEY = os.getenv('API_KEY')
+
 
 class MyClient(discord.Client):
     command_prefix = '!'
@@ -24,20 +47,19 @@ class MyClient(discord.Client):
         if ((message.content[0] == '!')):
             await message.channel.send(f"thanks for your command!")
 
-        
-
-
-
+            
+get_masters_ladder()
 
 
 client = MyClient(intents=discord.Intents.all())
 client.run(TOKEN)
 
 
-@client.command()
-async def add(ctx, left: int, right: int):
-    """Adds two numbers together."""
-    await ctx.send(left + right)
+
+# @client.command()
+# async def add(ctx, left: int, right: int):
+#     """Adds two numbers together."""
+#     await ctx.send(left + right)
 
 
 # description = '''An example bot to showcase the discord.ext.commands extension
