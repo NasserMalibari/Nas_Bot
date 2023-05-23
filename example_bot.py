@@ -5,8 +5,11 @@ import random
 from dotenv import load_dotenv
 import os
 import requests
+import datetime
+from masters import masters
+from collections import namedtuple
 
-masters = []
+mastersBoard = masters()
 
 def get_masters_ladder():
     headers = {
@@ -16,6 +19,7 @@ def get_masters_ladder():
     endpoint = "https://americas.api.riotgames.com/lor/ranked/v1/leaderboards"
     response = requests.get(endpoint, headers=headers)
     
+    masters = []
 
     if response.status_code == 200:
         data = response.json()
@@ -24,8 +28,10 @@ def get_masters_ladder():
     else:
         print("Request failed with status code:", response.status_code)
 
-    print(len(masters))
-    print(masters[0:10])
+    # print(len(masters))
+    # print(masters[0:10])
+
+    return masters
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -48,8 +54,10 @@ class MyClient(discord.Client):
             await message.channel.send(f"thanks for your command!")
 
             
-get_masters_ladder()
-
+m = get_masters_ladder()
+mastersBoard.add_to_list((m, datetime.datetime.now()))
+# print(mastersBoard.get_list()[0][0][0:10])
+# print(mastersBoard.get_list()[0][1].strftime("%d/%m/%Y"))
 
 client = MyClient(intents=discord.Intents.all())
 client.run(TOKEN)
