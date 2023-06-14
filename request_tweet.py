@@ -17,26 +17,35 @@ def connect_to_oauth(consumer_key, consumer_secret, acccess_token, access_token_
    auth = OAuth1(consumer_key, consumer_secret, acccess_token, access_token_secret)
    return url, auth
 
-# payload = json.dumps({
-#   "text": "Hello World! 2nd go"
-# })
-# headers = {
-#   'Content-Type': 'application/json',
-#   'Authorization': 'OAuth oauth_consumer_key="5Ei4W98mWvpv5Fi50meQHBMbP",oauth_token="1668880777919217665-uhlJdxa3f4i8TldYM94RxZgWzh2lxy",oauth_signature_method="HMAC-SHA1",oauth_timestamp="1686729062",oauth_nonce="BVATMdl5mTt",oauth_version="1.0",oauth_signature="lAjYFUD0T%2FsdR%2FFvrKGCSHWo22U%3D"'
-# }
-
       
 def post_tweet():
-    payload = json.dumps({"text": "Hello World! 3rd go"})
+    payload = json.dumps({"text": "Hello World! 4th go"})
     url, auth = connect_to_oauth(
         consumer_key, consumer_secret, access_token, access_token_secret
     )
     request = requests.post(
         auth=auth, url=url, data=payload, headers={"Content-Type": "application/json"}
     )
+
+    print(request.text)
+
+def post_reply(tweet_id, reply_status):
+    payload = json.dumps({"text": reply_status, "reply": {"in_reply_to_tweet_id":"1668910101351272448"}})
+    url, auth = connect_to_oauth(
+        consumer_key, consumer_secret, access_token, access_token_secret
+    )
+    request = requests.post(
+        auth=auth, url=url, data=payload, headers={"Content-Type": "application/json"}
+    )
+
     print(request.text)
 
 
+def test_response():
+    text = '{"data":{"edit_history_tweet_ids":["1668910101351272448"],"id":"1668910101351272448","text":"Hello World! 4th go"}}'
+    response = json.loads(text)
+    print (response['data']['id'])
+
 if __name__ == '__main__':
-    post_tweet()
+    post_reply(1668910101351272448, "a reply!")
 
