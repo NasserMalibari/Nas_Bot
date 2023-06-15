@@ -2,6 +2,8 @@ import json
 import boto3
 import os
 from masters import get_masters_ladder, get_player_dictionary, get_player_dict_fictional
+from dynamodb_json import json_util as json 
+import heapq
 
 dynamodb = boto3.client('dynamodb')
 
@@ -80,17 +82,69 @@ def copy_items(table0, table1):
         count += 1
     print(f"2nd arg has {get_db_size(table1)} items")
 
+# turns a list of dicts to dict
+# negative = True, will negate all values of list1 into final dict
+def list_to_dict(list1, negative = False):
+    player_dictionary = dict()
+    # print(type(player['points']))
+
+    for player in list1:
+        if (negative):
+            player_dictionary[player['username']] = - int(float(player['points']))
+        else:
+            player_dictionary[player['username']] = + int(float(player['points']))
+        # print(int(float(player['points'])))
+
+    return player_dictionary
 
 # return two lists of size 5 each:
 # biggest gainers and biggest losers
 def get_biggest_differences(table0, table1):
     return_payload = dict()
-    # return_payload["gainers"] =
-    # return_payload["losers"] =
-    differences = {}
-    
 
-    pass
+    differences = {}
+
+
+    # Perform the scan operation to retrieve all items
+    response_0 = table0.scan()
+    response_1 = table1.scan()
+
+    # Retrieve the items from the response
+    items_0 = response_0['Items']
+    items_1 = response_1['Items']
+
+    # turn items (list) into 1 dictionary
+    day0_dict = list_to_dict(items_0, True)
+    day1_dict = list_to_dict(items_1, False)
+
+    # print(day0_dict)
+    # print(day1_dict)
+
+    # add dicts together
+    for user, lp in day0_dict.items():
+        differences[user] = lp
+    
+    for user in day0_dict.keys():
+        differences[user] = differences[user] + day1_dict[user]
+
+    max_values = heapq.nlargest(10, differences, key=differences.get)
+    # print(max_values)
+
+    min_values = heapq.nsmallest(10, differences, key=differences.get)
+    # print(min_values)
+
+    max_items = [ (player, differences[player]) for player in max_values ]
+    min_items = [ (player, differences[player]) for player in min_values ]
+
+    # print(max_items)
+
+    return_payload["gainers"] = max_items
+
+    return_payload["losers"] = min_items
+
+    return return_payload
+
+    # pass
 
 
 def lambda_handler(event, context):
@@ -195,10 +249,13 @@ if __name__ == "__main__":
 
     day0_table = dynamodb.Table(os.environ["DAY0_TABLE"])
     day1_table = dynamodb.Table(os.environ["DAY1_TABLE"])
-    
+
+        
+    return_val = get_biggest_differences(day0_table, day1_table)
+    print(return_val["gainers"])
     # print(get_db_size(day0_table))
     # print(get_db_size(day1_table))
-    lambda_handler(event, None)
+    # lambda_handler(event, None)
     # print(get_db_size(day0_table))
     # print(get_db_size(day1_table))
     # # get_all_items(day0_table)
