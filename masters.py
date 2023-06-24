@@ -6,13 +6,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 KEY = os.getenv('API_KEY')
+DEV = os.getenv('DEV_KEY')
 
-def get_masters_ladder():
+# server is one of 'am' 'eu' 'ap'
+def get_masters_ladder(server):
     headers = {
     "X-Riot-Token": KEY
     }
 
-    endpoint = "https://americas.api.riotgames.com/lor/ranked/v1/leaderboards"
+    if (server not in ['am', 'eu', 'ap']):
+        raise ValueError("server not specified correctly")
+
+    if (server == 'am'):
+        endpoint = "https://americas.api.riotgames.com/lor/ranked/v1/leaderboards"
+    elif (server == 'eu'):
+        endpoint = "https://europe.api.riotgames.com/lor/ranked/v1/leaderboards"
+    elif (server == 'ap'):
+        endpoint = "https://sea.api.riotgames.com/lor/ranked/v1/leaderboards"
+    
     response = requests.get(endpoint, headers=headers)
     
     masters = []
@@ -29,11 +40,12 @@ def get_masters_ladder():
     # print(masters[100])
     return masters
 
-def get_player_dictionary():
+# server is one of 'am' 'eu' 'ap'
+def get_player_dictionary(server):
     player_dictionary = dict()
     # print(get_masters_ladder()[0])
 
-    for player in get_masters_ladder():
+    for player in get_masters_ladder(server):
         player_dictionary[player['name']] = int(player['lp'])
 
     return player_dictionary
@@ -47,6 +59,28 @@ def get_player_dict_fictional(player_dict):
     fict_dict['Dolmant'] = fict_dict['Dolmant'] + 150
 
     return fict_dict
+
+def lp_requirements(server):
+    p_list = get_masters_ladder(server)
+
+    rank1 = 0
+    rank10 = 0
+    rank25 = 0 
+    rank50 = 0
+    rank100 = 0
+
+    if (len(p_list) >= 1):
+        rank1 = int(p_list[0]['lp'])
+    if (len(p_list) >= 10):
+        rank10 = int(p_list[9]['lp'])
+    if (len(p_list) >= 25):
+        rank25 = int(p_list[24]['lp'])
+    if (len(p_list) >= 50):
+        rank50 = int(p_list[49]['lp'])
+    if (len(p_list) >= 100):
+        rank100 = int(p_list[99]['lp'])
+
+    return {1:rank1, 10:rank10, 25:rank25, 50: rank50, 100:rank100}
 
 
 """
@@ -115,4 +149,23 @@ class masters:
         return min_pair
 
 if __name__ == '__main__':
-    get_player_dict_fictional(get_player_dictionary())
+
+    print(lp_requirements("am"))
+    # # get_player_dictionary('eu')
+    # headers = {
+    # "X-Riot-Token": DEV
+    # }
+
+    # endpoint = 'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/MajiinBae'
+
+    # response = requests.get(endpoint, headers=headers)
+
+    # if response.status_code == 200:
+    #     data = response.json()
+    #     # Process the data as needed
+    #     # masters = data["players"]
+    #     print(data)
+    # else:
+    #     print("Request failed with status code:", response.status_code)
+
+    # print(KEY)

@@ -1,9 +1,41 @@
 import json
 import boto3
 import os
-from masters import get_masters_ladder, get_player_dictionary, get_player_dict_fictional
-from dynamodb_json import json_util as json 
+from masters import get_player_dictionary
 import heapq
+from datetime import date
+import requests
+import json
+import os
+from dotenv import load_dotenv
+from requests_oauthlib import OAuth1
+
+url = "https://api.twitter.com/2/tweets"
+
+load_dotenv()
+consumer_key = os.getenv("CONSUMER_KEY")
+consumer_secret = os.getenv("CONSUMER_SECRET")
+access_token = os.getenv("ACCESS_TOKEN")
+access_token_secret = os.getenv("ACCESS_TOKEN_SECRET")
+
+def connect_to_oauth(consumer_key, consumer_secret, acccess_token, access_token_secret):
+   url = "https://api.twitter.com/2/tweets"
+   auth = OAuth1(consumer_key, consumer_secret, acccess_token, access_token_secret)
+   return url, auth
+
+      
+def post_tweet(text, reply=False, reply_id=0):
+    payload = json.dumps({"text": text})
+    url, auth = connect_to_oauth(
+        consumer_key, consumer_secret, access_token, access_token_secret
+    )
+    request = requests.post(
+        auth=auth, url=url, data=payload, headers={"Content-Type": "application/json"}
+    )
+
+    print(request.text)
+    return_data = json.loads(request.text)
+    return return_data["data"]["id"]
 
 dynamodb = boto3.client('dynamodb')
 
@@ -72,7 +104,7 @@ def copy_items(table0, table1):
         print("extending data")
     
     print("clearing 2nd arg")
-    clear_table(table1)
+    # clear_table(table1)
 
     count = 0
     for d in data:
@@ -97,6 +129,44 @@ def list_to_dict(list1, negative = False):
 
     return player_dictionary
 
+
+def post_lor_tweet(server, gainers, losers):
+    if (server not in ['am', 'eu', 'ap']):
+        raise ValueError("server not specified correctly")
+    
+    server_name = "APAC"
+    if(server == 'am'):
+        server_name = "AMERICAS"
+    elif(server == "eu"):
+        server_name = "EUROPE"
+    losers_text=(f"{server_name} - {date.today()}\n"
+          f"TOP 5 Unluckiest Master Players\n\n"
+          f"🥇. {losers[0][0]} [{losers[0][1]}]\n"
+          f"🥈. {losers[1][0]} [{losers[1][1]}]\n"
+          f"🥉. {losers[2][0]} [{losers[2][1]}]\n"
+        )
+    
+    for index, val in enumerate(losers[3:], start=4):
+        losers_text += f"{index}. {val[0]} [{val[1]}]\n"
+    print(losers_text)
+
+    winners_text=(f"{server_name} - {date.today()}\n"
+          f"TOP 5 Master Players that gained more LP\n\n"
+          f"🥇. {gainers[0][0]} [{gainers[0][1]}]\n"
+          f"🥈. {gainers[1][0]} [{gainers[1][1]}]\n"
+          f"🥉. {gainers[2][0]} [{gainers[2][1]}]\n"
+        )
+    
+    for index, val in enumerate(gainers[3:], start=4):
+        winners_text += f"{index}. {val[0]} [{val[1]}]\n"
+    print(winners_text)
+
+    id = post_tweet(winners_text)
+    id = post_tweet(losers_text, True, id)
+
+
+    pass
+
 # return two lists of size 5 each:
 # biggest gainers and biggest losers
 def get_biggest_differences(table0, table1):
@@ -117,9 +187,6 @@ def get_biggest_differences(table0, table1):
     day0_dict = list_to_dict(items_0, True)
     day1_dict = list_to_dict(items_1, False)
 
-    # print(day0_dict)
-    # print(day1_dict)
-
     # add dicts together
     for user, lp in day0_dict.items():
         differences[user] = lp
@@ -127,10 +194,10 @@ def get_biggest_differences(table0, table1):
     for user in day0_dict.keys():
         differences[user] = differences[user] + day1_dict[user]
 
-    max_values = heapq.nlargest(10, differences, key=differences.get)
+    max_values = heapq.nlargest(5, differences, key=differences.get)
     # print(max_values)
 
-    min_values = heapq.nsmallest(10, differences, key=differences.get)
+    min_values = heapq.nsmallest(5, differences, key=differences.get)
     # print(min_values)
 
     max_items = [ (player, differences[player]) for player in max_values ]
@@ -150,8 +217,21 @@ def get_biggest_differences(table0, table1):
 def lambda_handler(event, context):
 
     dynamodb = boto3.resource("dynamodb")
-    day0_table_name = os.environ["DAY0_TABLE"]
-    day1_table_name = os.environ["DAY1_TABLE"]
+
+    post_tweet = event['post_tweet']
+
+    if (event['server'] == "am"):
+        day0_table_name = os.environ["DAY0_TABLE_AM"]
+        day1_table_name = os.environ["DAY1_TABLE_AM"]
+    elif (event['server'] == "eu"):
+        day0_table_name = os.environ["DAY0_TABLE_EU"]
+        day1_table_name = os.environ["DAY1_TABLE_EU"]
+    elif (event['server'] == "ap"):
+        day0_table_name = os.environ["DAY0_TABLE_AP"]
+        day1_table_name = os.environ["DAY1_TABLE_AP"]
+    else:
+        raise ValueError("am, eu or ap not specified")
+    
 
     day0_table = dynamodb.Table(day0_table_name)
     day1_table = dynamodb.Table(day1_table_name)
@@ -161,7 +241,7 @@ def lambda_handler(event, context):
         print("table 1 has  no items!")
         # put masters data in
         count = 0
-        players = get_player_dictionary()
+        players = get_player_dictionary(event['server'])
         for user, points in players.items():
             # print(user +  ' ' + points)
             day1_table.put_item(Item={"username":user, "points":points})
@@ -169,93 +249,62 @@ def lambda_handler(event, context):
             if (count % 100 == 0):
                 print(f"{count} players processed")
 
+        return
+    else:
+        # we have at least one day of data
 
-        # return
-    # elif (get_db_size(day0_table) != get_db_size(day1_table)):
-    #     # we have only 1 day of data
+        # copy day1 into day0
+        copy_items(day1_table, day0_table)
 
-    #     print("elif")
-    #     # copy day1 into day0
-    #     copy_items(day1_table, day0_table)
+        count = 0
+        players = get_player_dictionary(event['server'])
+        for user, points in players.items():
+            day1_table.put_item(Item={"username":user, "points":points})
+            count += 1
+            if (count % 100 == 0):
+                print(f"{count} players processed")
 
-    #     # rewrite day 1
-    #     players = get_player_dict_fictional(get_player_dictionary())
-    #     for user, points in players.items():
-    #         # print(user +  ' ' + points)
-    #         day1_table.put_item(Item={"username":user, "points":points})
-    #         count += 1
-    #         if (count % 100 == 0):
-    #             print(f"{count} players processed")
-    
-    if (event['user'] == "nas_local"):
+
+    # post tweet logic
+    if (post_tweet == False):
+        return
+
+    if (get_db_size(day0_table) >= 50 and get_db_size(day1_table) >= 50):
+        # post tweet
+        diffs = get_biggest_differences(day0_table, day1_table)
+        # post_lor_tweet(event['server'], diffs["gainers"], diffs["losers"])
+        # print("posted the tweet")
         pass
-        
-        
-
-    # return { "message" : message }
-
-# def lambda_handler_test_use(event, context):
-    
-#     # fictional data
-#     day0_masters = {'p1':100, "p2":50}
-#     day1_masters = {'p1': 50, "p2": 250, "p3":14, "p4":0}
-
-#     dynamodb = boto3.resource("dynamodb")
-#     day0_table_name = os.environ["DAY0_TABLE"]
-#     day1_table_name = os.environ["DAY1_TABLE"]
-
-#     day0_table = dynamodb.Table(day0_table_name)
-#     day1_table = dynamodb.Table(day1_table_name)
-
-#     # no data has been entered
-#     if (get_db_size(day1_table) == 0):
-#         print("table 1 has  no items!")
-#         # put masters data in
-#         count = 0
-#         for user, points in day0_masters.items():
-#             day1_table.put_item(Item={"username":user, "points":points})
-
-
-#         # return
-#     elif (get_db_size(day0_table) == 0):
-#         # move day 1 to day 0
-
-#         # clear day 0
-#         clear_table(day0_table)
-
-#         # copy 
-#         print("about to copy")
-
-#         # copy day1 masters into day 0 masters
-#         copy_items(day1_table, day0_table)
-
-#         # FIXME
-#         # day0_table = day1_table
-#         print("size of day 0 is now " + str(get_db_size(day0_table)))
-
-#         # clear_table(day1_table_name)
-#         for user, points in day1_masters.items():
-#             day1_table.put_item(Item={"username":user, "points":points})
-
-#     print(get_db_size(day0_table))
-#     print(get_db_size(day1_table))
 
 
 if __name__ == "__main__":
-    event = {"user" : "nas_local"}
+    # event = {"server" : "am", "post_tweet":False}
     dynamodb = boto3.resource('dynamodb')
-    os.environ["DAY0_TABLE"] = "day0"
-    os.environ["DAY1_TABLE"] = "day1"
+    os.environ["DAY0_TABLE_AM"] = "day0"
+    os.environ["DAY1_TABLE_AM"] = "day1"
+    os.environ["DAY0_TABLE_EU"] = "day0eu"
+    os.environ["DAY1_TABLE_EU"] = "day1eu"
+    os.environ["DAY0_TABLE_AP"] = "day0ap"
+    os.environ["DAY1_TABLE_AP"] = "day1ap"
 
-    day0_table = dynamodb.Table(os.environ["DAY0_TABLE"])
-    day1_table = dynamodb.Table(os.environ["DAY1_TABLE"])
-
-        
-    return_val = get_biggest_differences(day0_table, day1_table)
-    print(return_val["gainers"])
+    day0_table = dynamodb.Table(os.environ["DAY0_TABLE_AM"])
+    day1_table = dynamodb.Table(os.environ["DAY1_TABLE_AM"])
+    # return_val = get_biggest_differences(day0_table, day1_table)
+    # print(return_val["gainers"])
     # print(get_db_size(day0_table))
     # print(get_db_size(day1_table))
     # lambda_handler(event, None)
+
+    event = {"server" : "eu", "post_tweet":False}
+    lambda_handler(event, None)
+
+    event = {"server" : "ap", "post_tweet":False}
+    lambda_handler(event, None)
+    # print(get_db_size(day0_table))
+    # print(get_db_size(day1_table))
+
+    # diffs = get_biggest_differences(day0_table, day1_table)
+    # post_lor_tweet(event['server'], diffs["gainers"], diffs["losers"])
     # print(get_db_size(day0_table))
     # print(get_db_size(day1_table))
     # # get_all_items(day0_table)
