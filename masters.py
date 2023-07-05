@@ -34,11 +34,31 @@ def get_masters_ladder(server):
         masters = data["players"]
     else:
         print("Request failed with status code:", response.status_code)
-
-    # print(len(masters))
-    # print(masters[0:10])
-    # print(masters[100])
     return masters
+
+# server is one of 'am' 'eu' 'ap'
+def get_country(username, server):
+    if (server not in ['am', 'eu', 'ap']):
+        raise ValueError("server not specified correctly")
+    
+    endpoint = ""
+
+    if (server == 'am'):
+        endpoint = f"https://runeterra.ar/api/users/get/country/americas/{username}"
+    elif (server == 'eu'):
+        endpoint = f"https://runeterra.ar/api/users/get/country/europe/{username}"
+    elif (server == 'ap'):
+        endpoint = f"https://runeterra.ar/api/users/get/country/apac/{username}"
+
+    resp = requests.get(endpoint)
+    
+    if (resp.status_code == 200):
+        print("success!")
+        print(resp.text)
+        return get_flag_emoji(resp.text)
+    else:
+        print("failure")
+        return ""
 
 # server is one of 'am' 'eu' 'ap'
 def get_player_dictionary(server):
@@ -84,88 +104,20 @@ def lp_requirements(server):
 
 
 """
-The following class represents a list of 'snapshots' 
-of the masters leaderboard (as a list), combined with the time the snapshot was taken (datetime)
+Turns out country flags are just the two letter country code put together as emoji's
 """
-class masters:
-
-    def __init__(self):
-        # each item is a dictionary
-        # most recent entries on left side of deque
-        self.masters = deque()
-        self.players = deque()
-
-    def get_deque(self):
-        return self.masters
+def get_flag_emoji(country_code):
+    flag_offset = 127397
+    uppercase_country_code = country_code.upper()
+    emoji_flag = ""
     
-    def get_players(self):
-        return self.players
-
-    def add_to_masters(self, item):
-        if (len(self.masters) >= 30):
-            self.masters.pop()
-        self.masters.appendleft(item)
+    for char in uppercase_country_code:
+        emoji_flag += chr(ord(char) + flag_offset)
     
-    def add_to_players(self, item):
-        if (len(self.masters) >= 30):
-            self.players.pop()
-        self.players.appendleft(item)
+    return emoji_flag
+    # print(emoji_flag)
 
-    # calculate inflation
-    def inflation():
-        pass
-
-    # top LP Gainers for the past day
-    def top_gainers(self):
-        # create dictionary of player differences using dict comprehension
-        differences = {}
-
-        # 
-        for name, lp in self.players[1].items():
-            differences[name] = -lp
-    
-        for name in self.players[1].keys():
-            # print(f"subtracting {self.players[-1].get(name)} from {name}")
-            differences[name] = differences[name] + self.players[0].get(name)
-        
-        max_pair = max(differences.items(), key=lambda x: x[1])
-        print(max_pair)
-        return max_pair
-
-    # top LP Losers
-    def top_losers(self):
-        differences = {}
-
-        # 
-        for name, lp in self.players[1].items():
-            differences[name] = -lp
-    
-        for name in self.players[1].keys():
-            # print(f"subtracting {self.players[-1].get(name)} from {name}")
-            differences[name] = differences[name] + self.players[0].get(name)
-        
-        min_pair = min(differences.items(), key=lambda x: x[1])
-        print(min_pair)
-        return min_pair
 
 if __name__ == '__main__':
-
-    print(lp_requirements("am"))
-    # # get_player_dictionary('eu')
-    # headers = {
-    # "X-Riot-Token": DEV
-    # }
-
-    # endpoint = 'https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/MajiinBae'
-
-    # response = requests.get(endpoint, headers=headers)
-
-    # if response.status_code == 200:
-    #     data = response.json()
-    #     # Process the data as needed
-    #     # masters = data["players"]
-    #     print(data)
-    # else:
-    #     print("Request failed with status code:", response.status_code)
-
-    # print(KEY)
+    assert (get_country("AtLeastIGotTheCS", "eu") != "")
+    assert (get_country("random stuffs", "ap") == "")
