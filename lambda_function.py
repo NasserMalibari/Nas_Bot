@@ -10,6 +10,17 @@ import os
 from dotenv import load_dotenv
 from requests_oauthlib import OAuth1
 
+'''
+Communicates with aws tables (dynamo db) and functions in masters.py to post tweet
+
+lambda_handler gets called once a day for each server ('am', 'eu' and 'ap')
+
+about print statements:
+    aws lambda pushes stdout to a file inside of the 'cloudwatch' service, 
+    so print() is just a shorthand for logging
+'''
+
+
 url = "https://api.twitter.com/2/tweets"
 dynamodb = boto3.resource("dynamodb")
 
@@ -179,32 +190,6 @@ def post_lor_tweet(server, gainers, losers, rank_dict):
     # post_tweet(text) #, True, id)
 
 
-'''
-
-shift all values day 0 - day 29 up a day
-add 'points' arg to key: day0 of table.
-'''
-# def add_lp_requirements(points, table):
-
-
-#     response = table.scan()
-#     items = response['Items']
-
-#     # move all elements up a day
-#     for item in sorted(items, reverse = True, key = lambda x: int(x['days'])):
-#         current_key = item['days']
-#         new_key = str((int(current_key) + 1))
-#         # print(new_key)
-#         current_val = item['points']
-
-#         if (int(new_key) <= 30):
-#             table.put_item(Item={"days":new_key, "points":current_val})
-#         print(item)
-
-#     # put day 0
-#     table.put_item(Item={"days":"0", "points":points})
-
-
 # return two lists of size 5 each:
 # biggest gainers and biggest losers
 def get_biggest_differences(table0, table1):
@@ -309,15 +294,14 @@ def lambda_handler(event, context):
     # lp requirements
 
     # # post tweet logic
-    # if (post_tweet == False):
-    #     post_lor_tweet()
-    #     return
+    if (post_tweet == False):
+        return
 
     if (get_db_size(day0_table) >= 50 and get_db_size(day1_table) >= 50):
         # post tweet
         diffs = get_biggest_differences(day0_table, day1_table)
         post_lor_tweet(event['server'], diffs["gainers"], diffs["losers"], lp_requirements(event["server"]))
-        # print("posted the tweet")
+        print("posted the tweet")
         pass
 
 
@@ -349,19 +333,4 @@ if __name__ == "__main__":
     event = {"server" : "test", "post_tweet":False}
     lambda_handler(event, None)
     
-    # clear_table(day0_table)
-    # clear_table(day0_eu)
-    # clear_table(day1_eu)
-    # clear_table(day0_ap)
-    # clear_table(day1_ap)
-    # # return_val = get_biggest_differences(day0_table, day1_table)
-    # # print(return_val["gainers"])
-    # # print(get_db_size(day0_table))
-    # # print(get_db_size(day1_table))
-    # # lambda_handler(event, None)
-    # diffs = get_biggest_differences(day0_table, day1_table)
-    # rank_dict = lp_requirements("am")
-    # post_lor_tweet("am", diffs["gainers"], diffs["losers"], rank_dict)
-    # event = {"server" : "am", "post_tweet":False}
-    # lambda_handler(event, None)
 
