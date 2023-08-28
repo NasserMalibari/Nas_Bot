@@ -18,41 +18,8 @@ def connect_to_oauth(consumer_key, consumer_secret, acccess_token, access_token_
    return url, auth
 
       
-# def post_tweet():
-#     payload = json.dumps({"text": "Hello World! this is a test tweet"})
-#     url, auth = connect_to_oauth(
-#         consumer_key, consumer_secret, access_token, access_token_secret
-#     )
-#     request = requests.post(
-#         auth=auth, url=url, data=payload, headers={"Content-Type": "application/json"}
-#     )
-
-#     print(request.text)
-#     return_data = json.loads(request.text)
-#     # print(request.text)
-#     print(return_data["data"]["id"])
-#     return return_data["data"]["id"]
-#     # print(request['id'])
-#     # print(type(request['id']))
-
-# def post_reply(tweet_id, reply_status):
-#     payload = json.dumps({"text": reply_status, "reply": {"in_reply_to_tweet_id":"1668910101351272448"}})
-#     url, auth = connect_to_oauth(
-#         consumer_key, consumer_secret, access_token, access_token_secret
-#     )
-#     request = requests.post(
-#         auth=auth, url=url, data=payload, headers={"Content-Type": "application/json"}
-#     )
-
-#     print(request.text)
-
-def post_tweet(text, reply=False, reply_id=0):
-    
-    if (reply == True): 
-        payload = json.dumps({"text": text, "reply": {"in_reply_to_tweet_id":str(reply_id)}})
-    else:
-        payload = json.dumps({"text": text})
-
+def post_tweet():
+    payload = json.dumps({"text": "Hello World! 4th go"})
     url, auth = connect_to_oauth(
         consumer_key, consumer_secret, access_token, access_token_secret
     )
@@ -61,10 +28,17 @@ def post_tweet(text, reply=False, reply_id=0):
     )
 
     print(request.text)
-    return_data = json.loads(request.text)
-    return return_data["data"]["id"]
 
+def post_reply(tweet_id, reply_status):
+    payload = json.dumps({"text": reply_status, "reply": {"in_reply_to_tweet_id":"1668910101351272448"}})
+    url, auth = connect_to_oauth(
+        consumer_key, consumer_secret, access_token, access_token_secret
+    )
+    request = requests.post(
+        auth=auth, url=url, data=payload, headers={"Content-Type": "application/json"}
+    )
 
+    print(request.text)
 
 
 def test_response():
@@ -73,7 +47,5 @@ def test_response():
     print (response['data']['id'])
 
 if __name__ == '__main__':
-    id = post_tweet("hi, this is a test")
-    id2 = post_tweet("reply", True, id)
-    # post_reply(1668910101351272448, "a reply!")
+    post_reply(1668910101351272448, "a reply!")
 
