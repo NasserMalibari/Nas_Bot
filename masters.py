@@ -1,12 +1,28 @@
-import datetime
-from collections import deque
 import requests
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 KEY = os.environ['API_KEY']
 
 # server is one of 'am' 'eu' 'ap'
 def get_masters_ladder(server):
+    """ return leaderboard from RIOT API
+
+        Args:
+            server (string): One of "am", "eu" or "ap"
+
+        Returns:
+            List of dictionaries with keys:
+                "name" -> string
+                "rank" -> int
+                "lp"   -> float 
+
+        Example:
+            >>> get_masters_ladder("am")
+            [{"name":Naś , "rank":1, "lp": 1001}, ... ]
+    """
+
     headers = {
     "X-Riot-Token": KEY
     }
@@ -32,13 +48,29 @@ def get_masters_ladder(server):
     else:
         print("Request failed with status code:", response.status_code)
 
-    # print(len(masters))
-    # print(masters[0:10])
-    # print(masters[100])
     return masters
     
 # server is one of 'am' 'eu' 'ap'  
 def get_country(username, server):
+    """ Get the country of origin if player submitted theirs to runeterra.ar 
+    
+    Args:
+        username (string): name of the player
+        server   (string): server the player plays on, one of ["am","eu","ap"]
+
+    Returns:
+        country code (string): two letter country code if player submitted country,
+                               empty string if player didn't upload
+
+    Example:
+        >>> get_country("Naś", "am")
+        AU
+    
+    Raises:
+        ValueError: If 'server' is not one of ['am', 'eu', 'ap']
+
+    """
+
     if (server not in ['am', 'eu', 'ap']):
         raise ValueError("server not specified correctly")
     
@@ -99,6 +131,16 @@ def get_player_dict_fictional(player_dict):
     return fict_dict
     
 def lp_requirements(server):
+    """ Return dictionary that specifies how much lp is needed for a subset of rank thresholds
+
+    Args: 
+        server (list): one of "am", "eu", "ap"
+    
+    Returns:
+        Dictionary with keys of 1, 10, 25, 50, 100 (int),
+        and values of lp (points) required (int)
+    
+    """
     p_list = get_masters_ladder(server)
 
     rank1 = 0
@@ -121,10 +163,13 @@ def lp_requirements(server):
     return {1:rank1, 10:rank10, 25:rank25, 50: rank50, 100:rank100}
 
         
-"""
-Turns out country flags are just the two letter country code put together as emoji's
-"""
+
+# Turns out country flags are just the two letter country code put together as emoji's
+# note: flag emoji's do not appear on windows systems
 def get_flag_emoji(country_code):
+    """ Returns the specified emoji for given country code """
+
+    
     flag_offset = 127397
     uppercase_country_code = country_code.upper()
     emoji_flag = ""
@@ -133,7 +178,6 @@ def get_flag_emoji(country_code):
         emoji_flag += chr(ord(char) + flag_offset)
     
     return emoji_flag
-    # print(emoji_flag)
 
 if __name__ == '__main__':
-    get_player_dictionary('eu')
+    get_masters_ladder('eu')

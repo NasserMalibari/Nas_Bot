@@ -6,7 +6,6 @@ import heapq
 from datetime import date
 import requests
 import json
-import os
 from requests_oauthlib import OAuth1
 
 url = "https://api.twitter.com/2/tweets"
