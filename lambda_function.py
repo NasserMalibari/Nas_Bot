@@ -23,7 +23,15 @@ def connect_to_oauth(consumer_key, consumer_secret, acccess_token, access_token_
 
       
 def post_tweet(text, reply=False, reply_id=0):
-    
+    """
+        Posts a tweet
+
+        Args:
+            text (string): Tweet text
+            reply (bool, optional): If the tweet is a reply
+            reply_id (int, optional): the tweet id of the tweet to be replied to
+    """
+
     if (reply == True): 
         payload = json.dumps({"text": text, "reply": {"in_reply_to_tweet_id":str(reply_id)}})
     else:
@@ -121,14 +129,12 @@ def copy_items(table0, table1):
 # negative = True, will negate all values of list1 into final dict
 def list_to_dict(list1, negative = False):
     player_dictionary = dict()
-    # print(type(player['points']))
 
     for player in list1:
         if (negative):
             player_dictionary[player['username']] = - int(float(player['points']))
         else:
             player_dictionary[player['username']] = + int(float(player['points']))
-        # print(int(float(player['points'])))
 
     return player_dictionary
 
