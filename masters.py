@@ -1,4 +1,3 @@
-import datetime
 from collections import deque
 import requests
 import os
@@ -117,7 +116,37 @@ def get_flag_emoji(country_code):
     return emoji_flag
     # print(emoji_flag)
 
+def get_puuid():
+
+    headers = {
+    "X-Riot-Token": DEV
+    }
+    # print(DEV)
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/jamesf"
+    resp = requests.get(url, headers=headers)
+
+    print(resp)
+    # print(resp.text)
+    resp_data = resp.json()
+
+    puuid = resp_data['puuid']
+
+    lor_headers = {
+        "X-Riot-Token": KEY
+    }
+    print(resp_data['puuid'])
+
+    # https://americas.api.riotgames.com/lor/ranked/v1/leaderboards
+    # /riot/account/v1/accounts/by-puuid/{puuid}
+
+    endpoint = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/{puuid}"
+
+    resp = requests.get(endpoint, headers=headers)
+    print(resp.text)
+
+
 
 if __name__ == '__main__':
-    assert (get_country("AtLeastIGotTheCS", "eu") != "")
-    assert (get_country("random stuffs", "ap") == "")
+    get_puuid()
+    # assert (get_country("AtLeastIGotTheCS", "eu") != "")
+    # assert (get_country("random stuffs", "ap") == "")
