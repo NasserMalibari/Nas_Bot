@@ -106,6 +106,15 @@ def all_items(table):
 
 # copy table = into table 1
 def copy_items(table0, table1):
+    """
+        Copy a table into another table
+
+        Args:
+            table0 (DynamoDB.Table): table to be copied from
+            table1 (DynamoDB.Table): table to be copied to
+    
+    """
+
     response = table0.scan()
     data = response['Items']
 
@@ -114,7 +123,6 @@ def copy_items(table0, table1):
         data.extend(response['Items'])
         print("extending data")
     
-    # print("clearing 2nd arg")
     clear_table(table1)
 
     count = 0

@@ -64,8 +64,23 @@ def get_country(username, server):
 
 # server is one of 'am' 'eu' 'ap'
 def get_player_dictionary(server):
+    """
+        Generate a python dictionary of the leaderboard gathered by RIOT API
+
+        Args:
+            server (string): one of 'am', 'eu' or 'ap' indicating the server of the returned leaderboard
+    
+        Returns:
+            dictionary with key: username (string), value: points (int)
+
+        Example:
+            >>> get_player_dictionary("am")
+            {"Naś": 1001 , 
+              ...
+            }
+    """
+
     player_dictionary = dict()
-    # print(get_masters_ladder()[0])
 
     for player in get_masters_ladder(server):
         player_dictionary[player['name']] = int(player['lp'])
@@ -73,7 +88,8 @@ def get_player_dictionary(server):
     return player_dictionary
 
 def get_player_dict_fictional(player_dict):
-    pass
+    '''  Creates a 'fictional' leaderboard dictionary for testing '''
+
     # i = player_dict['Kuako']
     fict_dict = player_dict
 
@@ -104,70 +120,6 @@ def lp_requirements(server):
 
     return {1:rank1, 10:rank10, 25:rank25, 50: rank50, 100:rank100}
 
-"""
-The following class represents a list of 'snapshots' 
-of the masters leaderboard (as a list), combined with the time the snapshot was taken (datetime)
-"""
-class masters:
-
-    def __init__(self):
-        # each item is a dictionary
-        # most recent entries on left side of deque
-        self.masters = deque()
-        self.players = deque()
-
-    def get_deque(self):
-        return self.masters
-    
-    def get_players(self):
-        return self.players
-
-    def add_to_masters(self, item):
-        if (len(self.masters) >= 30):
-            self.masters.pop()
-        self.masters.appendleft(item)
-    
-    def add_to_players(self, item):
-        if (len(self.masters) >= 30):
-            self.players.pop()
-        self.players.appendleft(item)
-
-    # calculate inflation
-    def inflation():
-        pass
-
-    # top LP Gainers for the past day
-    def top_gainers(self):
-        # create dictionary of player differences using dict comprehension
-        differences = {}
-
-        # 
-        for name, lp in self.players[1].items():
-            differences[name] = -lp
-    
-        for name in self.players[1].keys():
-            # print(f"subtracting {self.players[-1].get(name)} from {name}")
-            differences[name] = differences[name] + self.players[0].get(name)
-        
-        max_pair = max(differences.items(), key=lambda x: x[1])
-        print(max_pair)
-        return max_pair
-
-    # top LP Losers
-    def top_losers(self):
-        differences = {}
-
-        # 
-        for name, lp in self.players[1].items():
-            differences[name] = -lp
-    
-        for name in self.players[1].keys():
-            # print(f"subtracting {self.players[-1].get(name)} from {name}")
-            differences[name] = differences[name] + self.players[0].get(name)
-        
-        min_pair = min(differences.items(), key=lambda x: x[1])
-        print(min_pair)
-        return min_pair
         
 """
 Turns out country flags are just the two letter country code put together as emoji's
